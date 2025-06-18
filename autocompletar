@@ -1,0 +1,185 @@
+# A classe `TrieNode` define a estrutura de cada "nó" ou "ponto" na nossa árvore.
+# Cada nó representa um caractere de uma palavra.
+class TrieNode:
+    # O método `__init__` é o construtor, executado sempre que um novo nó é criado.
+    def __init__(self):
+
+        # `self.children` é um dicionário que armazena os nós filhos.
+        # A chave é o caractere (ex: 'a') e o valor é o objeto TrieNode correspondente.
+        self.children = {}
+
+        # `self.is_end_of_word` é uma bandeira (booleana) que indica se este nó
+        # representa o final de uma palavra completa. (ex: em "casa", o nó do 'a' final terá isso como True).
+        self.is_end_of_word = False
+
+        # `self.frequency` conta quantas vezes a palavra que termina neste nó foi inserida.
+        # Isso é útil para ordenar as sugestões, mostrando as mais populares primeiro.
+        self.frequency = 0
+
+# A classe `Trie` gerencia a árvore como um todo.
+class Trie:
+    # O construtor da árvore Trie.
+    def __init__(self):
+        # A árvore começa com um nó raiz vazio, que servirá de ponto de partida para todas as palavras.
+        self.root = TrieNode()
+
+    # Método para inserir uma ou mais palavras na árvore.
+    def insere_palavra(self, palavras):
+        """ Insere uma palavra ou uma lista de palavras na TRIE. """
+        # Verifica se a entrada é uma única string. Se for, transforma em uma lista
+        # para que o loop funcione para ambos os casos (uma palavra ou várias).
+        if isinstance(palavras, str):
+            palavras = [palavras]
+        
+        # Itera sobre cada palavra que precisa ser inserida.
+        for palavra in palavras:
+            # Padroniza a palavra para letras minúsculas para evitar diferenças (ex: 'Casa' e 'casa').
+            palavra = palavra.lower()
+            # Começa a navegação a partir do nó raiz.
+            node = self.root
+            # Itera sobre cada caractere da palavra.
+            for char in palavra:
+                # Verifica se o caractere atual já não existe como um filho do nó atual.
+                if char not in node.children:
+                    # Se não existir, cria um novo nó filho para este caractere.
+                    node.children[char] = TrieNode()
+                
+                # Avança para o nó filho, seja ele o que acabamos de criar ou um que já existia.
+                node = node.children[char]
+            
+            # Ao final do loop, `node` representa o último caractere da palavra.
+            # Marcamos que aqui termina uma palavra válida.
+            node.is_end_of_word = True
+            # Incrementamos a frequência desta palavra.
+            node.frequency += 1
+
+    # Método auxiliar (privado) para encontrar o nó que corresponde ao final de um prefixo.
+    # O `_` no início do nome indica que este método é para uso interno da classe.
+    def _find_prefix_node(self, prefixo):
+        """ Encontra o nó na árvore que corresponde ao final do prefixo. """
+        node = self.root
+        for char in prefixo:
+            # Se, em qualquer ponto, o caractere do prefixo não for encontrado nos filhos,
+            # significa que o prefixo não existe na árvore.
+            if char not in node.children:
+                return None # Retorna 'Nada' para indicar que não foi encontrado.
+            # Continua descendo na árvore.
+            node = node.children[char]
+        # Retorna o nó final, de onde as sugestões de autocompletar começarão.
+        return node
+
+    # Método principal que gera as sugestões de palavras.
+    def sugerir_palavra(self, prefixo, max_sugestoes=3):
+        """ Gera uma lista de sugestões de palavras com base em um prefixo. """
+        prefixo = prefixo.lower()
+        prefix_node = self._find_prefix_node(prefixo)
+
+        # Se o prefixo não foi encontrado na árvore...
+        if not prefix_node:
+            # ...tenta encontrar correções para o que pode ter sido um erro de digitação.
+            return self.corretor_ortografico(prefixo, max_sugestoes)
+
+        sugestoes = []
+        # Chama a função recursiva para coletar todas as palavras que começam com este prefixo.
+        self._collect_all_words(prefix_node, prefixo, sugestoes)
+
+        # Ordena as sugestões com base em dois critérios:
+        # 1. Frequência (do maior para o menor, por isso `-x[1]`).
+        # 2. Ordem alfabética (se as frequências forem iguais).
+        sugestoes.sort(key=lambda x: (-x[1], x[0]))
+
+        # Retorna apenas a parte da palavra da tupla (palavra, frequencia),
+        # limitado ao número máximo de sugestões.
+        return [palavra for palavra, freq in sugestoes[:max_sugestoes]]
+
+    # Método auxiliar recursivo para coletar todas as palavras a partir de um nó.
+    def _collect_all_words(self, node, prefixo_atual, sugestoes):
+        """ Varre a árvore a partir de um nó e coleta todas as palavras encontradas. """
+        # Se o nó atual é o fim de uma palavra, adiciona à lista de sugestões.
+        if node.is_end_of_word:
+            sugestoes.append((prefixo_atual, node.frequency))
+
+        # Para cada filho do nó atual (em ordem alfabética)
+        for char, child_node in sorted(node.children.items()):
+            # chama a si mesma (recursão) para continuar a busca,
+            # adicionando o novo caractere ao prefixo que está sendo construído.
+            self._collect_all_words(child_node, prefixo_atual + char, sugestoes)
+
+    
+    def corretor_ortografico(self, palavra_errada, max_sugestoes=1):
+        """ Sugere palavras com uma "distância de edição" de 1, ou seja,
+            palavras que podem ser formadas com uma única alteração (adição, remoção, etc.). """
+        sugestoes_corrigidas = set() # `set` é usado para evitar sugestões duplicadas.
+        letras = 'abcdefghijklmnopqrstuvwxyz'
+        
+        # A palavra é dividida em todas as combinações de (parte_esquerda, parte_direita).
+        # Ex: para "csa" -> [('', 'csa'), ('c', 'sa'), ('cs', 'a'), ('csa', '')]
+        splits = [(palavra_errada[:i], palavra_errada[i:]) for i in range(len(palavra_errada) + 1)]
+        
+        # Gera candidatos com 1 letra removida. Ex: 'csa' -> 'sa', 'ca', 'cs'
+        deletes = [L + R[1:] for L, R in splits if R]
+        # Gera candidatos com 1 letra trocada de lugar com a vizinha. Ex: 'csa' -> 'sca'
+        transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R)>1]
+        # Gera candidatos com 1 letra substituída. Ex: 'csa' -> 'asa', 'bsa', ...
+        replaces = [L + c + R[1:] for L, R in splits if R for c in letras]
+        # Gera candidatos com 1 letra inserida. Ex: 'csa' -> 'acsa', 'casa', ...
+        inserts = [L + c + R for L, R in splits for c in letras]
+
+        # Junta todos os candidatos gerados em um único conjunto.
+        candidatos = set(deletes + transposes + replaces + inserts)
+
+        # Verifica quais dos candidatos são palavras válidas na nossa árvore.
+        for candidato in candidatos:
+            prefix_node = self._find_prefix_node(candidato)
+            if prefix_node and prefix_node.is_end_of_word:
+                sugestoes_corrigidas.add((candidato, prefix_node.frequency))
+
+        # Ordena as correções encontradas pela frequência (mais comum primeiro).
+        sugestoes_ordenadas = sorted(list(sugestoes_corrigidas), key=lambda x: -x[1])
+        
+        if not sugestoes_ordenadas:
+            return ["Nenhuma sugestão encontrada."]
+
+        # Retorna as melhores sugestões de correção.
+        return [palavra for palavra, freq in sugestoes_ordenadas[:max_sugestoes]]
+
+
+if __name__ == '__main__':
+
+    sistema_autocompletar = Trie()
+
+    # coloquei palavras aleatorios só para testar, mas pensei em fazer um arquivo .txt separado com diversas palavras para testar 
+    lista_palavras = [
+        'casa', 'casaco', 'casamento', 'caso', 'caminhao', 'caminho',
+        'carro', 'carta', 'cartografia', 'carteira', 'programa', 'programador',
+        'python', 'algoritmo', 'arvore'
+    ]
+    sistema_autocompletar.insere_palavra(lista_palavras)
+    
+    # Insere algumas palavras novamente para aumentar a frequência delas,
+    # fazendo com que apareçam primeiro nas sugestões.
+    sistema_autocompletar.insere_palavra(['casa', 'carro', 'python'])
+    
+    print("    Sistema de Autocompletar Interativo    ")
+    print("O dicionário foi carregado com algumas palavras.")
+    print("Digite um prefixo e de um ok para ver as sugestões.")
+    print("Digite 'sair' para encerrar.\n")
+
+    while True:
+        prefixo_usuario = input("Digite um prefixo: ")
+
+        if prefixo_usuario.lower() == 'sair':
+            break
+
+        sugestoes = sistema_autocompletar.sugerir_palavra(prefixo_usuario)
+        
+        if sugestoes:
+            print(f"Sugestões para '{prefixo_usuario}':")
+            for sugestao in sugestoes:
+                print(f" -> {sugestao}")
+        else:
+            print(f"Nenhuma sugestão encontrada para '{prefixo_usuario}'.")
+        
+        print("-" * 20) 
+
+    print("\nPrograma encerrado. Até logo!")
