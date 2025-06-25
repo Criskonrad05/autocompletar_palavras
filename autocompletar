@@ -83,7 +83,6 @@ class Trie:
         # Chama a função recursiva para coletar todas as palavras que começam com este prefixo.
         self._collect_all_words(prefix_node, prefixo, sugestoes)
 
-        # Ordena as sugestões com base em dois critérios:
         # 1. Frequência (do maior para o menor, por isso `-x[1]`).
         # 2. Ordem alfabética (se as frequências forem iguais).
         sugestoes.sort(key=lambda x: (-x[1], x[0]))
