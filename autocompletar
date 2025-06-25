@@ -3,15 +3,12 @@
 class TrieNode:
     # O método `__init__` é o construtor, executado sempre que um novo nó é criado.
     def __init__(self):
-
         # `self.children` é um dicionário que armazena os nós filhos.
         # A chave é o caractere (ex: 'a') e o valor é o objeto TrieNode correspondente.
         self.children = {}
-
         # `self.is_end_of_word` é uma bandeira (booleana) que indica se este nó
         # representa o final de uma palavra completa. (ex: em "casa", o nó do 'a' final terá isso como True).
         self.is_end_of_word = False
-
         # `self.frequency` conta quantas vezes a palavra que termina neste nó foi inserida.
         # Isso é útil para ordenar as sugestões, mostrando as mais populares primeiro.
         self.frequency = 0
@@ -143,11 +140,12 @@ class Trie:
         return [palavra for palavra, freq in sugestoes_ordenadas[:max_sugestoes]]
 
 
+# --- BLOCO PRINCIPAL MODIFICADO ---
 if __name__ == '__main__':
 
     sistema_autocompletar = Trie()
 
-    # coloquei palavras aleatorios só para testar, mas pensei em fazer um arquivo .txt separado com diversas palavras para testar 
+    # coloquei palavras aleatorios só para testar, mas fiz um arquivo .txt separado com diversas palavras para testar 
     lista_palavras = [
         'casa', 'casaco', 'casamento', 'caso', 'caminhao', 'caminho',
         'carro', 'carta', 'cartografia', 'carteira', 'programa', 'programador',
@@ -159,25 +157,49 @@ if __name__ == '__main__':
     # fazendo com que apareçam primeiro nas sugestões.
     sistema_autocompletar.insere_palavra(['casa', 'carro', 'python'])
     
-    print("    Sistema de Autocompletar Interativo    ")
+    print("     Sistema de Autocompletar Interativo     ")
     print("O dicionário foi carregado com algumas palavras.")
-    print("Digite um prefixo e de um ok para ver as sugestões.")
-    print("Digite 'sair' para encerrar.\n")
+    print("-------------------------------------------------")
+    print("Comandos disponíveis:")
+    print(" -> Digite um prefixo para ver as sugestões.")
+    print(" -> Digite 'adicionar' para inserir novas palavras.") 
+    print(" -> Digite 'sair' para encerrar o programa.\n")
 
     while True:
-        prefixo_usuario = input("Digite um prefixo: ")
+        entrada_usuario = input("Digite um prefixo ou comando: ")
+        comando = entrada_usuario.lower()
 
-        if prefixo_usuario.lower() == 'sair':
+        if comando == 'sair':
             break
+        
+        elif comando == 'adicionar':
+            palavras_para_adicionar = input("Digite a(s) palavra(s) que deseja adicionar (separadas por espaço): ")
+            
+            # .split() transforma a string de entrada em uma lista de palavras
+            novas_palavras = palavras_para_adicionar.lower().split()
+            
+            if not novas_palavras:
+                print("Nenhuma palavra foi digitada.")
+                continue
 
-        sugestoes = sistema_autocompletar.sugerir_palavra(prefixo_usuario)
+            # Usa o método já existente para inserir a lista de novas palavras
+            sistema_autocompletar.insere_palavra(novas_palavras)
+            
+            # Confirmação para o usuário
+            print(f"Palavra(s) '{', '.join(novas_palavras)}' adicionada(s) com sucesso!")
+            print("-" * 20)
+            # 'continue' faz o loop voltar ao início, pedindo a próxima entrada
+            continue 
+        
+        # Se não for um comando especial, trata como um prefixo para sugestão
+        sugestoes = sistema_autocompletar.sugerir_palavra(entrada_usuario)
         
         if sugestoes:
-            print(f"Sugestões para '{prefixo_usuario}':")
+            print(f"Sugestões para '{entrada_usuario}':")
             for sugestao in sugestoes:
                 print(f" -> {sugestao}")
         else:
-            print(f"Nenhuma sugestão encontrada para '{prefixo_usuario}'.")
+            print(f"Nenhuma sugestão encontrada para '{entrada_usuario}'.")
         
         print("-" * 20) 
 
