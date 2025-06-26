@@ -139,8 +139,6 @@ class Trie:
         # Retorna as melhores sugestões de correção.
         return [palavra for palavra, freq in sugestoes_ordenadas[:max_sugestoes]]
 
-
-# --- BLOCO PRINCIPAL MODIFICADO ---
 if __name__ == '__main__':
 
     sistema_autocompletar = Trie()
@@ -182,7 +180,6 @@ if __name__ == '__main__':
                 print("Nenhuma palavra foi digitada.")
                 continue
 
-            # Usa o método já existente para inserir a lista de novas palavras
             sistema_autocompletar.insere_palavra(novas_palavras)
             
             # Confirmação para o usuário
